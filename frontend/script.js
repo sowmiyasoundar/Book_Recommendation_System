@@ -1,6 +1,4 @@
-// script.js
-const BACKEND_URL = "http://127.0.0.1:5000"; // Replace this with your deployed backend URL after deployment
-
+// Use relative path, no hardcoded localhost
 document.getElementById("search-btn").addEventListener("click", async () => {
     const query = document.getElementById("search-input").value.trim();
     const resultsDiv = document.getElementById("results");
@@ -13,7 +11,8 @@ document.getElementById("search-btn").addEventListener("click", async () => {
     resultsDiv.innerHTML = "<p>Loading...</p>";
 
     try {
-        const response = await fetch(`${BACKEND_URL}/recommend?book=${encodeURIComponent(query)}`);
+        // Relative path works on deployed Render service
+        const response = await fetch(`/recommend?book=${encodeURIComponent(query)}`);
         
         if (!response.ok) throw new Error("Backend error");
 

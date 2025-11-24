@@ -1,7 +1,7 @@
 import os
 import pickle
 import pandas as pd
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -26,6 +26,22 @@ ratings_df = pd.read_csv(os.path.join(PROJECT_ROOT, "data", "ratings.csv"), low_
 avg_ratings = ratings_df.groupby("ISBN")["Book-Rating"].mean().to_dict()
 title_to_isbn = dict(zip(books_df["Book-Title"], books_df["ISBN"]))
 
+# -----------------------------
+# Serve frontend files
+# -----------------------------
+FRONTEND_DIR = os.path.join(PROJECT_ROOT, "frontend")
+
+@app.route("/")
+def serve_index():
+    return send_from_directory(FRONTEND_DIR, "index.html")
+
+@app.route("/<path:path>")
+def serve_frontend(path):
+    return send_from_directory(FRONTEND_DIR, path)
+
+# -----------------------------
+# API route
+# -----------------------------
 @app.route("/recommend", methods=["GET"])
 def recommend():
     query = request.args.get("book", "").strip()
@@ -57,21 +73,17 @@ def recommend():
             })
     else:
         book_name = query
-        recommendations = [ {
+        recommendations = [{
             "title": query,
             "image": "https://via.placeholder.com/120x180.png?text=No+Image",
             "rating": 0,
             "link": f"https://www.google.com/search?q={query.replace(' ', '+')}"
-        } ]
+        }]
 
     return jsonify({
         "input_book": book_name,
         "recommendations": recommendations
     })
-
-@app.route("/")
-def home():
-    return jsonify({"message": "Book Recommender API running!"})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
