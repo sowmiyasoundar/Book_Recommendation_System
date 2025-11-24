@@ -1,4 +1,6 @@
-// Use relative path, no hardcoded localhost
+// Backend is on the same domain now
+const BACKEND_URL = "";
+
 document.getElementById("search-btn").addEventListener("click", async () => {
     const query = document.getElementById("search-input").value.trim();
     const resultsDiv = document.getElementById("results");
@@ -11,26 +13,20 @@ document.getElementById("search-btn").addEventListener("click", async () => {
     resultsDiv.innerHTML = "<p>Loading...</p>";
 
     try {
-        // Relative path works on deployed Render service
         const response = await fetch(`/recommend?book=${encodeURIComponent(query)}`);
-        
         if (!response.ok) throw new Error("Backend error");
 
         const data = await response.json();
-
         if (!data.recommendations || data.recommendations.length === 0) {
             resultsDiv.innerHTML = "<p>No recommendations found.</p>";
             return;
         }
 
         resultsDiv.innerHTML = "";
-
         data.recommendations.forEach(book => {
             const stars = Math.round(book.rating / 2);
             let starHTML = "";
-            for (let i = 0; i < 5; i++) {
-                starHTML += i < stars ? "★" : "☆";
-            }
+            for (let i = 0; i < 5; i++) starHTML += i < stars ? "★" : "☆";
 
             resultsDiv.innerHTML += `
                 <div class="book-card" onclick="window.open('${book.link}', '_blank')">

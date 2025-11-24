@@ -4,10 +4,10 @@ import pandas as pd
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend requests
+app = Flask(__name__, static_folder="../frontend", static_url_path="")
+CORS(app)
 
-# Fix model path
+# Model path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 model_path = os.path.join(PROJECT_ROOT, "model", "model.pkl")
 
@@ -22,26 +22,9 @@ book_matrix = data["book_matrix"]
 books_df = pd.read_csv(os.path.join(PROJECT_ROOT, "data", "books.csv"), low_memory=False, encoding="latin-1")
 ratings_df = pd.read_csv(os.path.join(PROJECT_ROOT, "data", "ratings.csv"), low_memory=False)
 
-# Average ratings
 avg_ratings = ratings_df.groupby("ISBN")["Book-Rating"].mean().to_dict()
 title_to_isbn = dict(zip(books_df["Book-Title"], books_df["ISBN"]))
 
-# -----------------------------
-# Serve frontend files
-# -----------------------------
-FRONTEND_DIR = os.path.join(PROJECT_ROOT, "frontend")
-
-@app.route("/")
-def serve_index():
-    return send_from_directory(FRONTEND_DIR, "index.html")
-
-@app.route("/<path:path>")
-def serve_frontend(path):
-    return send_from_directory(FRONTEND_DIR, path)
-
-# -----------------------------
-# API route
-# -----------------------------
 @app.route("/recommend", methods=["GET"])
 def recommend():
     query = request.args.get("book", "").strip()
@@ -49,41 +32,28 @@ def recommend():
         return jsonify({"error": "No book provided"}), 400
 
     matches = [title for title in book_titles if query.lower() in title.lower()]
-
     if matches:
         book_name = matches[0]
         index = book_titles.index(book_name)
         distances, indices = model.kneighbors([book_matrix[index]], n_neighbors=6)
         recommended_titles = [book_titles[i] for i in indices[0][1:]]
-
         recommendations = []
         for title in recommended_titles:
             isbn = title_to_isbn.get(title, "")
-            image_url = (
-                f"https://covers.openlibrary.org/b/isbn/{isbn}-M.jpg"
-                if isbn else "https://via.placeholder.com/120x180.png?text=No+Image"
-            )
+            image_url = f"https://covers.openlibrary.org/b/isbn/{isbn}-M.jpg" if isbn else "https://via.placeholder.com/120x180.png?text=No+Image"
             rating = round(avg_ratings.get(isbn, 0), 1) if isbn else 0
             google_link = f"https://www.google.com/search?q={title.replace(' ', '+')}"
-            recommendations.append({
-                "title": title,
-                "image": image_url,
-                "rating": rating,
-                "link": google_link
-            })
+            recommendations.append({"title": title, "image": image_url, "rating": rating, "link": google_link})
     else:
         book_name = query
-        recommendations = [{
-            "title": query,
-            "image": "https://via.placeholder.com/120x180.png?text=No+Image",
-            "rating": 0,
-            "link": f"https://www.google.com/search?q={query.replace(' ', '+')}"
-        }]
+        recommendations = [{"title": query, "image": "https://via.placeholder.com/120x180.png?text=No+Image", "rating": 0, "link": f"https://www.google.com/search?q={query.replace(' ', '+')}"}]
 
-    return jsonify({
-        "input_book": book_name,
-        "recommendations": recommendations
-    })
+    return jsonify({"input_book": book_name, "recommendations": recommendations})
+
+# Serve frontend
+@app.route("/")
+def serve_frontend():
+    return send_from_directory(app.static_folder, "index.html")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
