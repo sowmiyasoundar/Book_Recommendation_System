@@ -1,3 +1,6 @@
+// script.js
+const BACKEND_URL = "http://127.0.0.1:5000"; // Replace this with your deployed backend URL after deployment
+
 document.getElementById("search-btn").addEventListener("click", async () => {
     const query = document.getElementById("search-input").value.trim();
     const resultsDiv = document.getElementById("results");
@@ -10,7 +13,7 @@ document.getElementById("search-btn").addEventListener("click", async () => {
     resultsDiv.innerHTML = "<p>Loading...</p>";
 
     try {
-        const response = await fetch(`http://127.0.0.1:5000/recommend?book=${encodeURIComponent(query)}`);
+        const response = await fetch(`${BACKEND_URL}/recommend?book=${encodeURIComponent(query)}`);
         
         if (!response.ok) throw new Error("Backend error");
 
@@ -24,7 +27,6 @@ document.getElementById("search-btn").addEventListener("click", async () => {
         resultsDiv.innerHTML = "";
 
         data.recommendations.forEach(book => {
-            // Create star rating visually (out of 5 stars)
             const stars = Math.round(book.rating / 2);
             let starHTML = "";
             for (let i = 0; i < 5; i++) {
